@@ -2670,8 +2670,9 @@
          * @param {boolean} disposeSource - When true (default), dispose of the vertices from the source meshes
          * @param {boolean} allow32BitsIndices - When the sum of the vertices > 64k, this must be set to true.
          * @param {Mesh} meshSubclass - When set, vertices inserted into this Mesh.  Meshes can then be merged into a Mesh sub-class.
+		 * @param {boolean} subdivideWithSubMeshes - When true (false default), subdivide mesh to his subMesh array with meshes source.
          */
-        public static MergeMeshes(meshes: Array<Mesh>, disposeSource = true, allow32BitsIndices?: boolean, meshSubclass?: Mesh): Mesh {
+        public static MergeMeshes(meshes: Array<Mesh>, disposeSource = true, allow32BitsIndices?: boolean, meshSubclass?: Mesh, subdivideWithSubMeshes?: boolean): Mesh {
             var index: number;
             if (!allow32BitsIndices) {
                 var totalVertices = 0;
@@ -2692,7 +2693,7 @@
             // Merge
             var vertexData: VertexData;
             var otherVertexData: VertexData;
-
+			var indiceArray = [];
             var source: Mesh;
             for (index = 0; index < meshes.length; index++) {
                 if (meshes[index]) {
@@ -2705,6 +2706,10 @@
                     } else {
                         vertexData = otherVertexData;
                         source = meshes[index];
+                    }
+					
+					if(subdivideWithSubMeshes){
+                        indiceArray.push(meshes[index].getTotalIndices());
                     }
                 }
             }
@@ -2727,6 +2732,22 @@
                 }
             }
 
+			// Subdivide
+            if(subdivideWithSubMeshes){
+                
+                //-- Suppresions du submesh global
+                meshSubclass.releaseSubMeshes();
+                index = 0;
+                var offset = 0;
+                
+                //-- aplique la subdivision en fonction du tableau d'indices
+                while (index < indiceArray.length) {
+                    BABYLON.SubMesh.CreateFromIndices(0, offset, indiceArray[index], meshSubclass);
+                    offset += indiceArray[index];
+                    index++;
+                }
+            }
+			
             return meshSubclass;
         }
     }
